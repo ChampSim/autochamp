@@ -12,16 +12,14 @@ def build_champsim(env_con):
   else:
 
     build_file = open(build_list)
-    
-    for line in build_file:
-      if line[0] != "#":
+   
+    with open(build_list) as build_file:
+      for line in filter(lambda l: not l.startswith('#'),  build_file):
         target = line.strip()
-      else:
-        continue
-      if target not in os.listdir(env_con.fields["configs_path"]):
-        print("Build file: " + target + " not found ")
-        exit()
-      else:
+        if target not in os.listdir(env_con.fields["configs_path"]):
+          print("Build file: " + target + " not found ")
+          exit()
+        else:
           print("Building: " + env_con.fields["configs_path"] + target)
           os.system("./config.sh " + env_con.fields["configs_path"] + target)
-          os.system("make")
+        os.system("make")

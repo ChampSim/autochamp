@@ -27,25 +27,26 @@ def get_stat_value(json_o, key_list):
   print("No value found for {}.".key_list)
   return None
 
-def parse_stats_list(sl):
+def parse_stats_list(stats_fn):
   stats_paths = []
 
-  for line in sl:
-    l = line.strip().split(",")
-    sanitized_l = []
-    if line.strip() == "":
-      continue
-    for ent in l:
-      if utils.check_str_int(ent):
-        sanitized_l.append(int(ent))
-      elif utils.check_str_float(ent):
-        sanitized_l.append(int(ent))
-      else:
-        sanitized_l.append(ent.strip())
+  with open(stats_fn) as sl:
+    for line in sl:
+      l = line.strip().split(",")
+      sanitized_l = []
+      if line.strip() == "":
+        continue
+      for ent in l:
+        if utils.check_str_int(ent):
+          sanitized_l.append(int(ent))
+        elif utils.check_str_float(ent):
+          sanitized_l.append(int(ent))
+        else:
+          sanitized_l.append(ent.strip())
 
-    if sanitized_l != []:
-      stats_paths.append(sanitized_l)
-    print(stats_paths)
+      if sanitized_l != []:
+        stats_paths.append(sanitized_l)
+      #print(stats_paths)
   return stats_paths
 
 def parse_json(data, level):
@@ -150,10 +151,7 @@ def get_stats(env_con):
 
   stat_dir = env_con.fields["results_collect_path"]
 
-  stats_list_fn = env_con.fields["stats_list"]
-
-  sl = open(stats_list_fn, "r")
-  stats_list = parse_stats_list(sl) 
+  stats_list = parse_stats_list(env_con.fields["stats_list"]) 
 
   if len(stats_list) == 0:
     print("stats_list is empty. Run auto-champ with the following flags \"-c -p\" to see the JSON fields and their ordering.")

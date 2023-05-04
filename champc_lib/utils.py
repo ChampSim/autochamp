@@ -11,3 +11,17 @@ def check_continue(yall):
       print("Canceling launch...")
       exit()
   return
+
+def check_str_int(ent):
+  try:
+    int(ent)
+    return True
+  except ValueError:
+    return False
+
+def check_str_float(ent):
+  try:
+    float(ent)
+    return True
+  except ValueError:
+    return False
