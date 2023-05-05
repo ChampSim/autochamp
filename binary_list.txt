@@ -1,1 +1,1 @@
-binary_list.txt
+champsim
