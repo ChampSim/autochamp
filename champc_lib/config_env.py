@@ -9,7 +9,7 @@ class env_config:
     self.ignore_bin = []
     self.output_path = ""
 
-    self.required_fields = ["build_list", "configs_path", "results_path", "workload_path", "binaries_path", 
+    self.required_fields = ["champsim_root", "build_list", "configs_path", "results_path", "workload_path", "binaries_path", 
                     "limit_hours", "ntasks", "account", "workload_list", "warmup", "sim_inst",
                     "results_collect_path", "HPRC","enable_json_output", "stats_list"]
     self.required_bool = ["HPRC", "enable_json_output"]

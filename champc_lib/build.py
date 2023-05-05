@@ -1,25 +1,49 @@
 import os
-def build_champsim(env_con):
-  
-  build_list = env_con.fields["build_list"]
+import sys
+import json
+import importlib
+import tempfile
+import itertools
 
-  if build_list == "all":
-    for js in os.listdir(env_con.fields["configs_path"]):
-      if js[-4:] == "json":
-        os.system("./config.sh " + env_con.fields["configs_path"] + js)
-        os.system("make")
+def parse_json(fname):
+    with open(fname, "r") as rfp:
+        parsed = json.load(rfp)
+        if isinstance(parsed, list):
+            return parsed
+        return [parsed]
 
-  else:
-
-    build_file = open(build_list)
-   
+def parse_targets_file(build_list, config_path):
     with open(build_list) as build_file:
       for line in filter(lambda l: not l.startswith('#'),  build_file):
-        target = line.strip()
-        if target not in os.listdir(env_con.fields["configs_path"]):
-          print("Build file: " + target + " not found ")
-          exit()
-        else:
-          print("Building: " + env_con.fields["configs_path"] + target)
-          os.system("./config.sh " + env_con.fields["configs_path"] + target)
-        os.system("make")
+          target = os.path.join(config_path, line.strip())
+          if os.path.exists(target):
+              print("Found configuration", target)
+              yield target
+          else:
+              print("Configuration", target, "not found ")
+              exit()
+
+
+def build_champsim(env_con):
+    #spec = importlib.util.spec_from_file_location('.config', os.path.join(env_con.fields['champsim_root'], 'config'))
+    #champsim_config = importlib.util.module_from_spec(spec)
+    #spec.loader.exec_module(champsim_config)
+
+    sys.path.append(env_con.fields['champsim_root'])
+    import config.filewrite
+    import config.parse
+
+    build_list = env_con.fields["build_list"]
+    if build_list == "all":
+        targets = itertools.chain(*((os.path.join(base,f) for f in files) for base,_,files in os.walk(env_con.fields['configs_path'])))
+        targets = filter(lambda t: os.path.splitext(t)[1] == '.json', targets)
+    else:
+        targets = parse_targets_file(build_list, env_con.fields['configs_path'])
+
+    parsed_jsons = itertools.chain(*(parse_json(f) for f in targets))
+    with tempfile.TemporaryDirectory() as objdir_name:
+        with config.filewrite.writer(env_con.fields['binaries_path'], objdir_name) as wr:
+            for c in parsed_jsons:
+                wr.write_files(config.parse.parse_config(c))
+
+        os.system("make -C "+env_con.fields['champsim_root'])
