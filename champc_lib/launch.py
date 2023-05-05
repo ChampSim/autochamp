@@ -29,23 +29,14 @@ def check_load(env_con):
       return True
 
 def create_results_directory(env_con):
+  results_path = os.path.join(env_con.fields["results_path"], str(date.today()), str(env_con.fields["num_cores"]) + "_cores")
+  num_dirs = 1
+  while os.path.isdir(os.path.join(results_path, str(num_dirs))):
+      num_dirs += 1
 
-  results_path = env_con.fields["results_path"]
-  num_cores = env_con.fields["num_cores"]
-  if not os.path.isdir(results_path + str(date.today()) + "/" + str(num_cores) + "_cores/1/"):
-    print("Creating new directory: " + results_path + str(date.today()) + "/" + str(num_cores) + "_cores/1/")
-    os.system("mkdir " + results_path + str(date.today()) + "/")
-    os.system("mkdir " + results_path + str(date.today()) + "/" + str(num_cores) + "_cores/")
-    os.system("mkdir " + results_path + str(date.today()) + "/" + str(num_cores) + "_cores/1/")
-    results_path += str(date.today()) + "/" + str(num_cores) + "_cores/1/"
-  else:
-    num_dirs = 1
-    for f in os.listdir(results_path + str(date.today()) + "/" + str(num_cores) + "_cores/"):
-      if os.path.isdir(results_path + str(date.today()) + "/" + str(num_cores) + "_cores/" + f):
-        num_dirs += 1
-    print("Creating new results directory: " + results_path + str(date.today()) + "/" + str(num_cores) + "_cores/" + str(num_dirs) + "/")
-    os.system("mkdir " + results_path + str(date.today()) + "/" + str(num_cores) + "_cores/" + str(num_dirs) + "/")
-    results_path += str(date.today()) + "/" + str(num_cores) + "_cores/" + str(num_dirs) + "/"
+  results_path = os.path.join(results_path, str(num_dirs))
+  print("Creating new directory:", results_path)
+  os.makedirs(results_path, exist_ok=True)
   return results_path
 
 def launch_simulations(env_con, launch_str, result_str, output_name):
