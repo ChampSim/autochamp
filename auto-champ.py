@@ -43,7 +43,7 @@ elif args.launch:
       print("Launching HPRC Job.")
       utils.check_continue(env_con.fields["yall"])
       env_con.load_launch_template()
-  launcher.terra_launch(env_con)
+  launcher.launch_handler(env_con)
 
 elif args.collect:
 
