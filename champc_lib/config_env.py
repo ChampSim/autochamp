@@ -21,27 +21,22 @@ class env_config:
  
   def load_env_config(self, config_name):
     if not os.path.exists(config_name):
-      print("ERROR: CONTROL CONFIG FILE DOES NOT EXIST\nFile: " + config_name)
-      exit()
+      sys.exit("ERROR: CONTROL CONFIG FILE DOES NOT EXIST\nFile: " + config_name)
 
-    config_file = open(config_name, "r")
+    with open(config_name, "r") as config_file:
+        for line in utils.filter_comments_and_blanks(config_file):
+            key, delim, value = line.partition('=')
+            if delim != '=':
+                sys.exit('Error parsing line: '+line)
 
-    for line in config_file:
-      if line[0] == "#" or len(line) == 1:
-        continue
+            key = key.strip()
+            value = value.strip()
 
-      sline = line.strip().split("=")
+            if key in self.fields.keys():
+                sys.exit("ERROR: REPEATING CONFIGURATION FIELD: "+ key)
 
-      for a in range(0,len(sline)):
-        sline[a] = sline[a].strip(" ")
-        sline[a] = sline[a].strip("\n")
+            self.fields[key] = value
 
-      if sline[0] in self.fields.keys():
-        print("ERROR: REPEATING CONFIGURATION FIELD: "+ sline[0] +"\n")
-        exit()
-      
-      self.fields[sline[0]] = sline[1]
-     
   def load_launch_template(self):
 
     if not os.path.exists(self.fields["launch_template"]):
