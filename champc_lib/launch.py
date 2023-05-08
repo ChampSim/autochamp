@@ -9,7 +9,7 @@ import champc_lib.utils as utils
 def check_load(env_con):
   username = env_con.fields["username"]
   job_limit = int(env_con.fields["job_limit"])
-  if env_con.fields["HPRC"]:
+  if env_con.fields["runner_format"] == 'slurm':
     procs_running = int(subprocess.check_output("squeue -u " + username + " | wc -l",\
       stderr = subprocess.STDOUT, shell = True)) - 1
     print(time.strftime("%H:%M:%S", time.localtime()) + ": Jobs running " + str(procs_running) + " Limit " + str(job_limit))
@@ -169,7 +169,7 @@ def launch_handler(env_con):
       f_launch_str = launch_str.format(binaries_path, a, str(env_con.fields["warmup"]), str(env_con.fields["sim_inst"]) + json_flag, trace_str)
       print("Launching command: {}".format(f_launch_str))
       print("Writing results to: {}".format(results_str))
-      if env_con.fields["HPRC"]:
+      if env_con.fields["runner_format"] == 'slurm':
         sbatch_launch(env_con, f_launch_str, results_str, output_name)
       else:
         launch_simulations(env_con, f_launch_str, results_str, output_name)

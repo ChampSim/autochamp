@@ -1,3 +1,4 @@
+import sys
 import os
 import re
 import champc_lib.utils as utils
@@ -11,8 +12,8 @@ class env_config:
 
     self.required_fields = ["champsim_root", "build_list", "configs_path", "results_path", "workload_path", "binaries_path", 
                     "limit_hours", "ntasks", "account", "workload_list", "warmup", "sim_inst",
-                    "results_collect_path", "HPRC","enable_json_output", "stats_list"]
-    self.required_bool = ["HPRC", "enable_json_output"]
+                    "results_collect_path", "runner_format","enable_json_output", "stats_list"]
+    self.required_bool = ["enable_json_output"]
     self.optional_fields = ["launch_file", "baseline", "launch_template","yall"]
     self.ignore_fields = ["output_name", "result_str"]
 
