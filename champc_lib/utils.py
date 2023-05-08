@@ -25,3 +25,7 @@ def check_str_float(ent):
     return True
   except ValueError:
     return False
+
+def filter_comments_and_blanks(file_iter):
+    trimmed_lines = (l.partition('#')[0].strip() for l in file_iter)
+    yield from (l for l in trimmed_lines if len(l) > 0)

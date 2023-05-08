@@ -4,6 +4,7 @@ import json
 import importlib
 import tempfile
 import itertools
+import champc_lib.utils as utils
 
 def parse_json(fname):
     with open(fname, "r") as rfp:
@@ -14,7 +15,7 @@ def parse_json(fname):
 
 def parse_targets_file(build_list, config_path):
     with open(build_list) as build_file:
-      for line in filter(lambda l: not l.startswith('#'),  build_file):
+      for line in utils.filter_comments_and_blanks(build_file):
           target = os.path.join(config_path, line.strip())
           if os.path.exists(target):
               print("Found configuration", target)
