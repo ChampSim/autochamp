@@ -4,6 +4,7 @@ from datetime import date
 import time 
 import subprocess
 import re
+import champc_lib.utils as utils
 
 def check_load(env_con):
   username = env_con.fields["username"]
@@ -82,33 +83,24 @@ def sbatch_launch(env_con, launch_str, result_str, output_name):
   os.system("sbatch " + env_con.fields["launch_file"])
   os.system("rm " + env_con.fields["launch_file"])
 
-def terra_launch(env_con):
-  #location of the files describing the binaries and 
-  #the workloads being launched
-
-  #open the files
-  binary_list_file = open(env_con.fields["binary_list"], "r")
-  workloads_list_file = open(env_con.fields["workload_list"], "r")
+def launch_handler(env_con):
 
   #init the structs holding the list of launching items
   binaries = []
   workloads = []
+
+  with open(env_con.fields["binary_list"], "r") as binary_list_file:
+    #gather each binary 
+    binaries = list(utils.filter_comments_and_blanks(binary_list_file))
+
+  with open(env_con.fields["workload_list"], "r") as workloads_list_file:
+    workloads = list(utils.filter_comments_and_blanks(workloads_list_file))
+
  
   #workload director
   workload_dir = env_con.fields["workload_path"]
 
-  #gather each binary 
-  for line in binary_list_file:
-    if line[0] != "#":
-      binaries.append(line.strip())
 
-  #first entry in the workload file is the 
-  first = True
-  for line in workloads_list_file:
-    workloads.append(line.strip())
-
-  binary_list_file.close()
-  workloads_list_file.close()
 
   print("Binaries launching: ")
   print("Launching workloads: ")
