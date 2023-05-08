@@ -40,10 +40,10 @@ elif args.launch:
 
   if "launch_template" in env_con.fields.keys():
     if env_con.fields["runner_format"] == 'slurm':
-      print("Launching HPRC Job.")
+      print("Launching Slurm Job.")
       utils.check_continue(env_con.fields["yall"])
       env_con.load_launch_template()
-  launcher.launch_handler(env_con)
+  launcher.launch(env_con)
 
 elif args.collect:
 

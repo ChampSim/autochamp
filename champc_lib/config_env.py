@@ -43,23 +43,20 @@ class env_config:
     if not os.path.exists(self.fields["launch_template"]):
       print("ERROR: LAUNCH TEMPLATE DEFINED BUT DOES NOT EXIST: " + self.fields["launch_template"] + "\n")
       exit()
-    
-    lt = open(self.fields["launch_template"], "r")
 
     self.fields["launch_fields"] = [] 
 
-    for line in lt:
-      line = line.strip()
-      if "=" not in line:
-        continue
-      matches = re.findall(r"{([^{}]*)}", line)
-      for match in matches:
-        if match not in self.fields.keys() and match not in self.ignore_fields:
-          print("{} defined in template file but not in control.cfg\n".format(match))
-          utils.check_continue(self.fields["yall"]) 
-        self.fields["launch_fields"].append(match) 
-
-    lt.close()
+    with open(self.fields["launch_template"], "r") as lt:
+        for line in lt:
+          line = line.strip()
+          if "=" not in line:
+            continue
+          matches = re.findall(r"{([^{}]*)}", line)
+          for match in matches:
+            if match not in self.fields.keys() and match not in self.ignore_fields:
+              print("{} defined in template file but not in control.cfg\n".format(match))
+              utils.check_continue(self.fields["yall"]) 
+            self.fields["launch_fields"].append(match) 
 
   def build_check(self):
     if self.fields["build_list"] == "":
