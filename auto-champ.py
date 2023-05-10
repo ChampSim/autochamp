@@ -38,11 +38,10 @@ if args.build:
   
 elif args.launch:
 
-  if "launch_template" in env_con.fields.keys():
-    if env_con.fields["HPRC"]:
-      print("Launching HPRC Job.")
-      utils.check_continue(env_con.fields["yall"])
-      env_con.load_launch_template()
+  if "launch_template" in env_con.fields.keys() and env_con.fields["HPRC"]:
+    print("Launching HPRC Job.")
+    utils.check_continue(env_con.fields["yall"])
+    env_con.load_launch_template()
   launcher.launch_handler(env_con)
 
 elif args.collect:

@@ -9,49 +9,59 @@ import champc_lib.utils as utils
 def check_load(env_con):
   username = env_con.fields["username"]
   job_limit = int(env_con.fields["job_limit"])
+  current_binary = env_con.fields["current_binary"]
+
+  hms_t = time.strftime("%H:%M:%S", time.localtime())
+
+  #if on the TAMU HPRC machines, use squeue to see how many jobs are currently
+  #running based on the username given in the control file
   if env_con.fields["HPRC"]:
     procs_running = int(subprocess.check_output("squeue -u " + username + " | wc -l",\
       stderr = subprocess.STDOUT, shell = True)) - 1
-    print(time.strftime("%H:%M:%S", time.localtime()) + ": Jobs running " + str(procs_running) + " Limit " + str(job_limit))
-    if procs_running < job_limit:
-      return False
-    else:
-      time.sleep(30)
-      return True
+
+    print(f"{hms_t}: Jobs running: {procs_running} Job Limit {job_limit}")
+
   else:
-    procs_running = int(subprocess.check_output("ps -u {} | grep \"{}\" | wc -l".format(username, str(env_con.fields["current_binary"])),\
+    procs_running = int(subprocess.check_output("ps -u {} | grep \"{}\" | wc -l".format(username, str(current_binary)),\
       stderr = subprocess.STDOUT, shell = True))
-    print("Procs running: {} Bin {}".format(procs_running, str(env_con.fields["current_binary"])))
-    print(time.strftime("%H:%M:%S", time.localtime()) + ": Jobs running " + str(procs_running) + " Limit " + str(job_limit))
-    if procs_running < job_limit:
-      return False
-    else:
-      time.sleep(30)
-      return True
+
+    print(f"{hms_t}: Jobs running: {procs_running} Job Limit {job_limit}")
+    
+  if procs_running < job_limit:
+    return False
+  else:
+    time.sleep(30)
+    return True
 
 def create_results_directory(env_con):
 
   results_path = env_con.fields["results_path"]
   num_cores = env_con.fields["num_cores"]
-  if not os.path.isdir(results_path + str(date.today()) + "/" + str(num_cores) + "_cores/1/"):
-    print("Creating new directory: " + results_path + str(date.today()) + "/" + str(num_cores) + "_cores/1/")
-    os.system("mkdir " + results_path + str(date.today()) + "/")
-    os.system("mkdir " + results_path + str(date.today()) + "/" + str(num_cores) + "_cores/")
-    os.system("mkdir " + results_path + str(date.today()) + "/" + str(num_cores) + "_cores/1/")
-    results_path += str(date.today()) + "/" + str(num_cores) + "_cores/1/"
+  today = str(date.today())
+
+  core_path = [results_path, today, f"/{num_cores}_cores/"]
+  core_path_str = "".join(core_path)
+  print("".join(core_path))
+  path = ""
+  if not os.path.isdir("".join(core_path)):
+    core_path.append("1/")
+    for s in core_path:
+      path += s
+      if not os.path.isdir(path):
+        print(f"Creating new directory: {path}")
+        os.makedirs(path)
   else:
-    num_dirs = 1
-    for f in os.listdir(results_path + str(date.today()) + "/" + str(num_cores) + "_cores/"):
-      if os.path.isdir(results_path + str(date.today()) + "/" + str(num_cores) + "_cores/" + f):
-        num_dirs += 1
-    print("Creating new results directory: " + results_path + str(date.today()) + "/" + str(num_cores) + "_cores/" + str(num_dirs) + "/")
-    os.system("mkdir " + results_path + str(date.today()) + "/" + str(num_cores) + "_cores/" + str(num_dirs) + "/")
-    results_path += str(date.today()) + "/" + str(num_cores) + "_cores/" + str(num_dirs) + "/"
-  return results_path
+    num_dirs = len([f for f in os.listdir(core_path_str) if os.path.isdir(os.path.join(core_path_str, f)) and f.isdigit()])
+    core_path_str = f"{core_path_str}{num_dirs + 1}/"
+    print(f"Creating new results directory: {core_path_str}")
+    os.makedirs(core_path_str)
+    results_path += core_path_str 
+
+  return core_path_str
 
 def launch_simulations(env_con, launch_str, result_str, output_name):
-  launch_str = launch_str.strip() + " &> {}".format(result_str)
-  print("Final CMD: {}".format(launch_str))
+  launch_str = launch_str.strip() + f" &> {result_str}"
+  print(f"Final CMD: {launch_str}")
   while check_load(env_con):
     continue
 
@@ -62,33 +72,37 @@ def sbatch_launch(env_con, launch_str, result_str, output_name):
   while check_load(env_con):
     continue
 
-  temp_launch = open(env_con.fields["launch_file"], "w")
+  with open(env_con.fields["launch_template"], "r") as templ, open(env_con.fields["launch_file"], "w") as temp_launch:
 
-  #open the template file
-  tmpl = open(env_con.fields["launch_template"], "r")
+    #check for missing fields
+    ignore_fields = set(env_con.ignore_fields)
+    required_fields = set(field.strip("{}") for field in re.findall(r"{[^{}]*}", templ.read()))
+    missing_fields = required_fields - set(env_con.fields.keys()) - ignore_fields
+    if missing_fields:
+      print("Following fields are not defined and required for launching:\n", "\n".join([str(entry) for entry in missing_fields]))
+    
+    templ.seek(0)
 
-  for line in tmpl:
-    matches = re.findall(r"{([^{}]*)}", line)
-    out_line = line
-    for match in matches:
-      if match not in env_con.fields.keys() and match not in env_con.ignore_fields:
-        print("{}: Not defined and required for launching\n".format(match))
-        exit()
-      if match in env_con.ignore_fields:
-        if match == "result_str":
-          out_line = out_line.replace("{" + match + "}", result_str)
-        elif match == "output_name":
-          print(output_name)
-          out_line = out_line.replace("{" + match + "}", output_name)
-      else:
-        out_line = out_line.replace("{" + match + "}", env_con.fields[match])
+    for line in templ:
 
-    temp_launch.write(out_line.strip() + "\n") 
+      matches = re.findall(r"{([^{}]*)}", line)
+      out_line = line
 
-  temp_launch.write(launch_str)
-  temp_launch.close()
+      for match in matches:
+        if match in ignore_fields:
+          if match == "result_str":
+            out_line = out_line.replace("{" + match + "}", result_str)
+          elif match == "output_name":
+            print(output_name)
+            out_line = out_line.replace("{" + match + "}", output_name)
+        else:
+          out_line = out_line.replace("{" + match + "}", env_con.fields[match])
 
-  print("Running command: " + "sbatch " + env_con.fields["launch_file"])
+      temp_launch.write(out_line.strip() + "\n") 
+
+    temp_launch.write(launch_str)
+
+  print("Running command: sbatch ", env_con.fields["launch_file"])
   os.system("sbatch " + env_con.fields["launch_file"])
   os.system("rm " + env_con.fields["launch_file"])
 
@@ -109,8 +123,6 @@ def launch_handler(env_con):
   #workload director
   workload_dir = env_con.fields["workload_path"]
 
-
-
   print("Binaries launching: ")
   print("Launching workloads: ")
   count = 0
@@ -124,12 +136,18 @@ def launch_handler(env_con):
       print()
   print()
 
-  print("Launching " + str((len(binaries) * len(workloads))) + " continue? [Y/N]") 
+  #######################################################################
+  #Keeping this in to prevent users from using yall to accidently launch#
+  #a large number of jobs                                               #
+  #TODO: Find safer/better way of doing this                            #
+  #######################################################################
+  print("Launching {len(binaries) * len(workloads)} continue? [y/n]")
   cont = input().lower()
   if cont != "y":
     print("Exiting job launch...")
     exit()
   print("Launching jobs...")
+  #######################################################################
 
   binaries_path = env_con.fields["binaries_path"]
   results_path = ""
