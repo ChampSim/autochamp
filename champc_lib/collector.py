@@ -20,11 +20,11 @@ def get_stat_value(json_o, key_list):
       return get_stat_value(json_o[key], key_list[1:])
   elif isinstance(json_o, list):
     if key >= len(json_o):
-      print("Invalid index into JSON list. {}".format(key))
+      print(f"Invalid index into JSON list. {key}")
       return None
     return get_stat_value(json_o[key], key_list[1:])
 
-  print("No value found for {}.".key_list)
+  print("No value found for {key_list}.")
   return None
 
 def parse_stats_list(stats_fn):
@@ -49,38 +49,32 @@ def parse_stats_list(stats_fn):
       #print(stats_paths)
   return stats_paths
 
+def print_level(level, level_str):
+  symb = ""
+  top_bot_buf = 40
+  per_level_buf = 2
+
+  if level == 1:
+    print(f"{symb * top_bot_buf}")
+  print(f"{symb * (level * per_level_buf)} {level_str}")
+  if level == 1:
+    print(f"{symb * top_bot_buf}")
+
+
 def parse_json(data, level):
 
-  level_print = (level + 1)
   if isinstance(data, dict):
     for a in data.keys():
-      if level == 0:
-        print("=======================")
-      for num in range(0, level_print):
-        print("=", end="")
-      print("Level {} : {}".format(level + 1, a))
-      #print("{}".format(a))
-      if level == 0:
-        print("=======================")
+      print_level(level + 1, f"Level {level + 1} : {a}")
       parse_json(data[a], level + 1)
+
   elif isinstance(data, list):
-    for a in data:
-      if isinstance(a, int) or isinstance(a, float):
-        continue
-      for num in range(0, level_print):
-        print("=", end="")
-      print("Level {} : List len {} : {}".format(level + 1, len(a), a))
+    for a in [entry for entry in data if not isinstance(entry, (int, float))]: #data:
+      print_level(level + 1, f"Level {level + 1} : List len {len(a)} : {a}")
       parse_json(a, level + 1)
-  elif isinstance(data, str):
-    if data != "":
-      if level == 0:
-        print("=======================")
-      for num in range(0, level_print):
-        print("=", end="")
-      print("Level {} Type: {}".format(level + 1, type(data)))
-      print(data)
-      if level == 0:
-        print("=======================")
+
+  elif isinstance(data, str) and data != "":
+    print_level(level + 1, f"Level {level+1} Type : {data}")
  
   return
 
@@ -97,7 +91,7 @@ def print_stats(env_con):
     #look for "bin:" to find the binary name 
     start = fil.find("bin:") + len("bin:")
     if start == -1:
-      print("\nFile: {} does not contain \"bin:\". Skipping file.".format(fil))
+      print("\nFile: {fil} does not contain \"bin:\". Skipping file.")
       continue
 
     try:
