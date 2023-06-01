@@ -109,5 +109,11 @@ class env_config:
     if "baseline" not in self.fields.keys() or self.fields["baseline"] == "":
       print("Stats Collection Warning: Baseline not specified. Will not generate IPC improvement.")
     
-    
+  def username_check(self):
+    import pwd
+    try: pwd.getpwnam(self.fields["username"])
+    except KeyError:
+        print("Username {} does not exist".format(self.fields["username"]))
+        exit()
+    return
   

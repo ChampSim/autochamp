@@ -5,6 +5,7 @@ import time
 import subprocess
 import re
 import champc_lib.utils as utils
+import champc_lib.config_env as ce 
 
 def check_load(env_con):
   username = env_con.fields["username"]
@@ -109,7 +110,7 @@ def launch_handler(env_con):
   #workload director
   workload_dir = env_con.fields["workload_path"]
 
-
+  env_con.username_check()
 
   print("Binaries launching: ")
   print("Launching workloads: ")
@@ -178,6 +179,7 @@ def launch_handler(env_con):
       f_launch_str = launch_str.format(binaries_path, a, str(env_con.fields["warmup"]), str(env_con.fields["sim_inst"]) + json_flag, trace_str)
       print("Launching command: {}".format(f_launch_str))
       print("Writing results to: {}".format(results_str))
+
       if env_con.fields["HPRC"]:
         sbatch_launch(env_con, f_launch_str, results_str, output_name)
       else:
