@@ -1,3 +1,4 @@
 cpu0_L1I, LOAD, hit, 0 
 cpu0_L2C, LOAD, hit, 0
 LLC, LOAD, hit, 0
+DRAM, 0, AVG DBUS CONGESTED CYCLE
