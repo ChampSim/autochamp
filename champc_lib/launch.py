@@ -14,9 +14,7 @@ def check_load(env_con):
 
   if env_con.fields["HPRC"]:
     procs_running = int(subprocess.check_output(f"squeue -u {username} | wc -l", stderr = subprocess.STDOUT, shell = True)) - 1
-
     print(time.strftime("%H:%M:%S", time.localtime()) + f" - Jobs running {str(procs_running)} Limit {str(job_limit)}")
-    
     if procs_running < job_limit:
       return False
     else:
@@ -26,9 +24,7 @@ def check_load(env_con):
     procs_running = int(subprocess.check_output(f"ps -u {username} | grep \"{curr_bin}\" | wc -l", stderr = subprocess.STDOUT, shell = True))
 
     print(f"Procs running: {procs_running} Bin {curr_bin}")
-
     print(time.strftime("%H:%M:%S", time.localtime()) + f" - Jobs running {str(procs_running)} Limit {str(job_limit)}")
-    #print(time.strftime("%H:%M:%S", f"{time.localtime()} - Jobs running {str(procs_running)} Limit {str(job_limit)}"))
 
     if procs_running < job_limit:
       return False
@@ -123,17 +119,11 @@ def launch_handler(env_con):
   env_con.username_check()
 
   print("Binaries launching: ")
+  utils.list_col_print(binaries)
   print("Launching workloads: ")
-  count = 0
 
   #This prints the workloads in 4 columns
-  for a in workloads:
-    count += 1
-    print(a, end="\t")
-    if count == 4:
-      count = 0
-      print()
-  print()
+  utils.list_col_print(workloads)
 
   ################################################################
 # Leaving this in beyond --yall to prevent accidently
@@ -145,16 +135,13 @@ def launch_handler(env_con):
     print("Exiting job launch...")
     exit()
   print("Launching jobs...")
-##################################
-################################################################
+# ################################
+# ##############################################################
 
   binaries_path = env_con.fields["binaries_path"]
   results_path = ""
 
-  if env_con.output_path == "":
-    results_path = create_results_directory(env_con)
-  else:
-    results_path = env_con.output_path
+  results_path = create_results_directory(env_con) if env_con.output_path == "" else env_con.output_path
 
   warmup = env_con.fields["warmup"]
   sim_inst = env_con.fields["sim_inst"]
@@ -171,20 +158,12 @@ def launch_handler(env_con):
   for a in binaries:
     for b in workloads:
       splitload = b.split(" ")
-
+      multiwl = len(splitload) > 1
       env_con.fields["current_binary"] = a
 
-      #supporting multicore by iterating through the workload list
-      if(len(splitload) > 1):
-        for subwl in splitload:
-          #create results file name
-          results_output_s += subwl.strip() + "_"
-          #trace str needs to include wl directory since it references each trace's location
-          trace_str += workload_dir.strip() + subwl.strip() + " "
-        results_output_s += "multi"
-      else:
-        results_output_s = b
-        trace_str = workload_dir + b
+      #supporting multicore by iterating through the workload list with multiple workloads on a single line
+      results_output_s = "_".join(subwl.strip() for subwl in splitload) + "_multi" if multiwl else str(b)
+      trace_str = "".join(f"{workload_dir}{subwl.strip()} " for subwl in splitload) if multiwl else f"{workload_dir}{b}"
 
       json_flag = ''
       if env_con.fields["enable_json_output"]:

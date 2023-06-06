@@ -1,4 +1,19 @@
 
+def list_col_print(in_list):
+    from math import isqrt as isqrt
+    from math import ceil as ceil
+    num = len(in_list)
+    num_col = isqrt(num)
+    ele_per_col = ceil(num / num_col)
+
+    max_len = max(len(str(item)) for item in in_list)
+    
+    for i in range(0, num, ele_per_col):
+        col = in_list[i:i + ele_per_col]
+        for item in col:
+            print(str(item).ljust(max_len), end=' ')
+        print()
+
 def check_continue(yall):
   decision = ""
   if yall:
