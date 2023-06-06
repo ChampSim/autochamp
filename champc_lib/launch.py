@@ -10,20 +10,22 @@ import champc_lib.config_env as ce
 def check_load(env_con):
   username = env_con.fields["username"]
   job_limit = int(env_con.fields["job_limit"])
+  curr_bin = env_con.fields["current_binary"]
+
   if env_con.fields["HPRC"]:
-    procs_running = int(subprocess.check_output("squeue -u " + username + " | wc -l",\
-      stderr = subprocess.STDOUT, shell = True)) - 1
-    print(time.strftime("%H:%M:%S", time.localtime()) + ": Jobs running " + str(procs_running) + " Limit " + str(job_limit))
+    procs_running = int(subprocess.check_output(f"squeue -u {username} | wc -l", stderr = subprocess.STDOUT, shell = True)) - 1
+    print(time.strftime("%H:%M:%S", time.localtime()) + f" - Jobs running {str(procs_running)} Limit {str(job_limit)}")
     if procs_running < job_limit:
       return False
     else:
       time.sleep(30)
       return True
   else:
-    procs_running = int(subprocess.check_output("ps -u {} | grep \"{}\" | wc -l".format(username, str(env_con.fields["current_binary"])),\
-      stderr = subprocess.STDOUT, shell = True))
-    print("Procs running: {} Bin {}".format(procs_running, str(env_con.fields["current_binary"])))
-    print(time.strftime("%H:%M:%S", time.localtime()) + ": Jobs running " + str(procs_running) + " Limit " + str(job_limit))
+    procs_running = int(subprocess.check_output(f"ps -u {username} | grep \"{curr_bin}\" | wc -l", stderr = subprocess.STDOUT, shell = True))
+
+    print(f"Procs running: {procs_running} Bin {curr_bin}")
+    print(time.strftime("%H:%M:%S", time.localtime()) + f" - Jobs running {str(procs_running)} Limit {str(job_limit)}")
+
     if procs_running < job_limit:
       return False
     else:
@@ -33,26 +35,29 @@ def check_load(env_con):
 def create_results_directory(env_con):
 
   results_path = env_con.fields["results_path"]
-  num_cores = env_con.fields["num_cores"]
-  if not os.path.isdir(results_path + str(date.today()) + "/" + str(num_cores) + "_cores/1/"):
-    print("Creating new directory: " + results_path + str(date.today()) + "/" + str(num_cores) + "_cores/1/")
-    os.system("mkdir " + results_path + str(date.today()) + "/")
-    os.system("mkdir " + results_path + str(date.today()) + "/" + str(num_cores) + "_cores/")
-    os.system("mkdir " + results_path + str(date.today()) + "/" + str(num_cores) + "_cores/1/")
-    results_path += str(date.today()) + "/" + str(num_cores) + "_cores/1/"
+  num_cores = str(env_con.fields["num_cores"])
+  td = str(date.today())
+
+  path_parts = [td+"/", num_cores + "_cores/"]
+  count = 1
+
+  count_str = f"{str(count)}/"
+  if not os.path.isdir(os.path.join(results_path, *path_parts)):
+    path_parts.append(count_str)
+    os.makedirs(os.path.join(results_path, *path_parts))
   else:
-    num_dirs = 1
-    for f in os.listdir(results_path + str(date.today()) + "/" + str(num_cores) + "_cores/"):
-      if os.path.isdir(results_path + str(date.today()) + "/" + str(num_cores) + "_cores/" + f):
-        num_dirs += 1
-    print("Creating new results directory: " + results_path + str(date.today()) + "/" + str(num_cores) + "_cores/" + str(num_dirs) + "/")
-    os.system("mkdir " + results_path + str(date.today()) + "/" + str(num_cores) + "_cores/" + str(num_dirs) + "/")
-    results_path += str(date.today()) + "/" + str(num_cores) + "_cores/" + str(num_dirs) + "/"
+    while os.path.isdir(os.path.join(results_path, *path_parts, count_str)):
+        count += 1
+        count_str = f"{str(count)}/"
+    path_parts.append(count_str)
+    os.makedirs(os.path.join(results_path, *path_parts))
+  results_path += "".join(path_parts)
+  print(f"Created directory {results_path}")
   return results_path
 
 def launch_simulations(env_con, launch_str, result_str, output_name):
-  launch_str = launch_str.strip() + " &> {}".format(result_str)
-  print("Final CMD: {}".format(launch_str))
+  launch_str = f"{launch_str.strip()} > {result_str} &"
+  print(f"Final CMD: {launch_str}")
   while check_load(env_con):
     continue
 
@@ -63,7 +68,8 @@ def sbatch_launch(env_con, launch_str, result_str, output_name):
   while check_load(env_con):
     continue
 
-  temp_launch = open(env_con.fields["launch_file"], "w")
+  launchf = env_con.fields["launch_file"]
+  temp_launch = open(launchf, "w")
 
   #open the template file
   tmpl = open(env_con.fields["launch_template"], "r")
@@ -73,7 +79,7 @@ def sbatch_launch(env_con, launch_str, result_str, output_name):
     out_line = line
     for match in matches:
       if match not in env_con.fields.keys() and match not in env_con.ignore_fields:
-        print("{}: Not defined and required for launching\n".format(match))
+        print(f"{match}: Not defined and required for launching\n")
         exit()
       if match in env_con.ignore_fields:
         if match == "result_str":
@@ -89,9 +95,9 @@ def sbatch_launch(env_con, launch_str, result_str, output_name):
   temp_launch.write(launch_str)
   temp_launch.close()
 
-  print("Running command: " + "sbatch " + env_con.fields["launch_file"])
-  os.system("sbatch " + env_con.fields["launch_file"])
-  os.system("rm " + env_con.fields["launch_file"])
+  print(f"Running command: sbatch {launchf}")
+  os.system(f"sbatch launch_f")
+  os.system(f"rm {launch_f}")
 
 def launch_handler(env_con):
 
@@ -113,76 +119,65 @@ def launch_handler(env_con):
   env_con.username_check()
 
   print("Binaries launching: ")
+  utils.list_col_print(binaries)
   print("Launching workloads: ")
-  count = 0
 
   #This prints the workloads in 4 columns
-  for a in workloads:
-    count += 1
-    print(a, end="\t")
-    if count == 4:
-      count = 0
-      print()
-  print()
+  utils.list_col_print(workloads)
 
-  print("Launching " + str((len(binaries) * len(workloads))) + " continue? [Y/N]") 
+  ################################################################
+# Leaving this in beyond --yall to prevent accidently
+# launching too many jobs
+  ################################
+  print(f"Launching {len(binaries) * len(workloads)} continue? [Y/N]") 
   cont = input().lower()
   if cont != "y":
     print("Exiting job launch...")
     exit()
   print("Launching jobs...")
+# ################################
+# ##############################################################
 
   binaries_path = env_con.fields["binaries_path"]
   results_path = ""
 
-  if env_con.output_path == "":
-    results_path = create_results_directory(env_con)
-  else:
-    results_path = env_con.output_path
+  results_path = create_results_directory(env_con) if env_con.output_path == "" else env_con.output_path
 
   warmup = env_con.fields["warmup"]
   sim_inst = env_con.fields["sim_inst"]
 
   results_str = "" 
-  launch_str = "{}{} -warmup_instructions {} -simulation_instructions {} -traces {}\n" 
+  launch_str = "{}{} --warmup_instructions {} --simulation_instructions {} {}\n" 
   results_output_s = ""
   trace_str = "" 
   output_name = "" 
   num_launch = 0
  
-  print("Job binaries: {}".format(binaries))
+  print(f"Job binaries: {binaries}")
 
   for a in binaries:
     for b in workloads:
       splitload = b.split(" ")
-
+      multiwl = len(splitload) > 1
       env_con.fields["current_binary"] = a
 
-      #supporting multicore by iterating through the workload list
-      if(len(splitload) > 1):
-        for subwl in splitload:
-          #create results file name
-          results_output_s += subwl.strip() + "_"
-          #trace str needs to include wl directory since it references each trace's location
-          trace_str += workload_dir.strip() + subwl.strip() + " "
-        results_output_s += "multi"
-      else:
-        results_output_s = b
-        trace_str = workload_dir + b
+      #supporting multicore by iterating through the workload list with multiple workloads on a single line
+      results_output_s = "_".join(subwl.strip() for subwl in splitload) + "_multi" if multiwl else str(b)
+      trace_str = "".join(f"{workload_dir}{subwl.strip()} " for subwl in splitload) if multiwl else f"{workload_dir}{b}"
 
       json_flag = ''
       if env_con.fields["enable_json_output"]:
-        json_flag = " -j"
+        json_flag = " --json"
 
-      output_name = results_output_s + "_" + a + "_"
-      results_str = results_path + results_output_s + "_bin:" + a 
+      output_name = f"{results_output_s}_{a}_"
+      results_str = f"{results_path}{results_output_s}_bin:{a}"
       f_launch_str = launch_str.format(binaries_path, a, str(env_con.fields["warmup"]), str(env_con.fields["sim_inst"]) + json_flag, trace_str)
-      print("Launching command: {}".format(f_launch_str))
-      print("Writing results to: {}".format(results_str))
+      print(f"Launching command: {f_launch_str}")
+      print(f"Writing results to: {results_str}")
 
       if env_con.fields["HPRC"]:
         sbatch_launch(env_con, f_launch_str, results_str, output_name)
       else:
         launch_simulations(env_con, f_launch_str, results_str, output_name)
       num_launch += 1
-      print("Launching Job " + str(num_launch))
+      print(f"Launching Job {num_launch}")
