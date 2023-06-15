@@ -43,7 +43,7 @@ def build_champsim(env_con):
 
     parsed_jsons = itertools.chain(*(parse_json(f) for f in targets))
     with tempfile.TemporaryDirectory() as objdir_name:
-        with config.filewrite.writer(env_con.fields['binaries_path'], objdir_name) as wr:
+        with config.filewrite.FileWriter(env_con.fields['binaries_path'], objdir_name) as wr:
             for c in parsed_jsons:
                 wr.write_files(config.parse.parse_config(c))
 
