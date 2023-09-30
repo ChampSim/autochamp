@@ -73,7 +73,7 @@ class env_config:
     #check required fields 
     failed_check = [] 
     for f in self.required_fields:
-      if f not in self.fields.keys():
+      if f not in self.fields.keys() or self.fields[f] == '':
         failed_check.append(f)
       if f in self.required_bool and f not in failed_check:
         if self.fields[f] != '0' and self.fields[f] != '1':
