@@ -1,6 +1,7 @@
 import os
 import re
 import champc_lib.utils as utils
+import sys
 
 class env_config:
   
@@ -9,9 +10,13 @@ class env_config:
     self.ignore_bin = []
     self.output_path = ""
 
-    self.required_fields = ["champsim_root", "build_list", "configs_path", "results_path", "workload_path", "binaries_path", 
-                    "limit_hours", "ntasks", "account", "workload_list", "warmup", "sim_inst",
-                    "results_collect_path", "HPRC","enable_json_output", "stats_list"]
+    self.required_build_fields = ["build_list", "configs_path"]
+    self.required_launch_fields = ["workload_path", "workload_list", "binaries_path", "warmup", "sim_inst", "enable_json_output", "results_path"]
+    self.required_collect_fields = ["stats_list", "enable_json_output", "results_collect_path"]
+    self.required_hprc_fields = ["limit_hours", "ntasks", "account", "HPRC",]
+
+    self.required_fields = ["champsim_root"] 
+                    
     self.required_bool = ["HPRC", "enable_json_output"]
     self.optional_fields = ["launch_file", "baseline", "launch_template","yall"]
     self.ignore_fields = ["output_name", "result_str"]
@@ -68,34 +73,70 @@ class env_config:
       print("Build Error: No defined build configurations path")
       exit() 
 
-  def config_check(self, command):
-   
-    #check required fields 
+  def check_fields(self, fields_to_check, optional):
     failed_check = [] 
-    for f in self.required_fields:
+    for f in fields_to_check:
       if f not in self.fields.keys() or self.fields[f] == '':
         failed_check.append(f)
       if f in self.required_bool and f not in failed_check:
-        if self.fields[f] != '0' and self.fields[f] != '1':
-          print("ERROR: field {} must be set to 0 or 1, currently: {}".format(f, self.fields[f]))
+        if not isinstance(self.fields[f], bool):
+          self.fields[f] = (self.fields[f] == '1' or self.fields[f] == 'True')
+        if (self.fields[f] != '0' and self.fields[f] != '1') \
+        and ((bool(self.fields[f]) != True) and (bool(self.fields[f]) != False)):
+          print("ERROR: field {} must be set to 0 or 1, currently: {}".format(f,bool(self.fields[f])))
           exit()
-        self.fields[f] = (self.fields[f] == '1')
-    if len(failed_check) != 0:
+
+    if len(failed_check) != 0 and not optional:
       print("Fields were undefined or failed to load:")
       for fc in failed_check:
         print(fc)
       exit()
-
-    failed_check = []
-    #check optional fields 
-    for f in self.optional_fields:
-      if f not in self.fields.keys():
-        failed_check.append(f)
-    if len(failed_check) != 0:
+    elif len(failed_check) != 0 and optional:
       print("Fields were undefined or failed to load:")
       for fc in failed_check:
         print(fc)
       utils.check_continue(self.fields["yall"]) 
+
+  def config_check(self, command):
+   
+    #check required fields
+    self.check_fields(self.required_fields, 0)
+    #check optional fields
+    self.check_fields(self.optional_fields, 1)
+    #check build fields
+    self.check_fields(self.required_build_fields, 0)
+    #check launch fields
+    self.check_fields(self.required_launch_fields, 0)
+    #check collect fields
+    self.check_fields(self.required_collect_fields, 0)
+    #check hprc fields
+    self.check_fields(self.required_hprc_fields, 0)
+
+    #failed_check = [] 
+    #for f in self.required_fields:
+    #  if f not in self.fields.keys() or self.fields[f] == '':
+    #    failed_check.append(f)
+    #  if f in self.required_bool and f not in failed_check:
+    #    if self.fields[f] != '0' and self.fields[f] != '1':
+    #      print("ERROR: field {} must be set to 0 or 1, currently: {}".format(f, self.fields[f]))
+    #      exit()
+    #    self.fields[f] = (self.fields[f] == '1')
+    #if len(failed_check) != 0:
+    #  print("Fields were undefined or failed to load:")
+    #  for fc in failed_check:
+    #    print(fc)
+    #  exit()
+
+    #failed_check = []
+    #check optional fields 
+    #for f in self.optional_fields:
+    #  if f not in self.fields.keys():
+    #    failed_check.append(f)
+    #if len(failed_check) != 0:
+    #  print("Fields were undefined or failed to load:")
+    #  for fc in failed_check:
+    #    print(fc)
+    #  utils.check_continue(self.fields["yall"]) 
 
     if command.collect:
       if not os.path.isdir(self.fields["results_collect_path"]):

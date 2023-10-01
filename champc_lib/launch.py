@@ -180,4 +180,4 @@ def launch_handler(env_con):
       else:
         launch_simulations(env_con, f_launch_str, results_str, output_name)
       num_launch += 1
-      print(f"Launching Job {num_launch}")
+      print(f"Launching Sim #{num_launch}")
