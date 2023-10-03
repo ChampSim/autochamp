@@ -59,8 +59,9 @@ From the champsim directory run:
 ChampSim outputs the results of the simulations to the <code>output_path</code> based on the date the result was generated (note launching simulations overnight generates a folder for the new date) and seperates the simulations into folders based on the number of launches previously done in that day. i.e. Launching 6 different sets of simulations on 1/1/2023 will place the results in 2023-01-01/1/ through /6/.
 
 Fill out the parameters for collecting stats:
+	
 	results_collect_path - where the results you want to scrape are
- 	stats_list - this file decribes which stats to collect
+	stats_list - this file decribes which stats to collect
 
 The <code>stats_list</code> is filled out based on the JSON structure outputted by ChampSim with the <code>enable_json_output</code> flag. To make it easier to fill out, running AutoChamp with the <code>-c -p<\code> flags with a valid <code>results_collect_path<\code> displays the levels in the JSON output. Examples are included in <code>to_collect.txt</code>
 	
